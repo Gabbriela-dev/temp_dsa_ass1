@@ -41,3 +41,8 @@ type Asset record {
     Schedule[] schedules;
     WorkOrder[] workOrders;
 };
+
+type CreateResponse record {
+    string message;
+    Asset asset;
+};
