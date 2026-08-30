@@ -39,4 +39,12 @@ service /assets on new http:Listener(8080) {
         Asset removed = assetStore.remove(assetTag);
         return {message: "Asset deleted successfully", asset: removed};
     }
+
+        resource function get institution/[string institution]() returns Asset[] {
+        return assetStore.toArray().filter(a => a.institution == institution);
+    }
+
+    resource function get site/[string site]() returns Asset[] {
+        return assetStore.toArray().filter(a => a.site == site);
+    }
 }
