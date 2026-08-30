@@ -46,3 +46,7 @@ type CreateResponse record {
     string message;
     Asset asset;
 };
+
+type Institution record {
+    string name;
+};

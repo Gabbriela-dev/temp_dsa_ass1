@@ -2,6 +2,7 @@ import ballerina/http;
 import ballerina/time;
 
 map<Asset> assetStore = {};
+map<Institution> institutionStore = {};
 
 service /assets on new http:Listener(8080) {
 
@@ -74,5 +75,26 @@ service /assets on new http:Listener(8080) {
         time:Civil currentCivil = time:utcToCivil(currentUtc);
         string today = string `${currentCivil.year}-${currentCivil.month.toString().padZero(2)}-${currentCivil.day.toString().padZero(2)}`;
         return assetStore.toArray().filter(a => a.schedules.some(s => s.dueDate < today));
+    }
+
+        resource function post institutions(@http:Payload Institution newInstitution) returns Institution|http:Conflict {
+        if institutionStore.hasKey(newInstitution.name) {
+            return http:CONFLICT;
+        }
+        institutionStore[newInstitution.name] = newInstitution;
+        return newInstitution;
+    }
+
+    resource function delete institutions/[string name]() returns Institution|http:NotFound {
+        Institution? found = institutionStore[name];
+        if found is () {
+            return http:NOT_FOUND;
+        }
+        _ = institutionStore.remove(name);
+        return found;
+    }
+
+    resource function get institutions() returns Institution[] {
+        return institutionStore.toArray();
     }
 }
