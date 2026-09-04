@@ -50,3 +50,7 @@ type CreateResponse record {
 type Institution record {
     string name;
 };
+
+type ErrorResponse record {
+    string message;
+};
