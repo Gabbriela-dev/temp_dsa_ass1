@@ -17,15 +17,15 @@ public function main() returns error? {
         string choice = io:readln();
 
         if choice == "1" {
-            check globalView();
+            globalView();
         } else if choice == "2" {
-            check campusView();
+            campusView();
         } else if choice == "3" {
-            check overdueDashboard();
+            overdueDashboard();
         } else if choice == "4" {
-            check loanAsset();
+            loanAsset();
         } else if choice == "5" {
-            check scheduleManager();
+            scheduleManager();
         } else if choice == "6" {
             running = false;
             io:println("Goodbye.");
@@ -39,46 +39,59 @@ function printAsset(Asset a) {
     io:println(a.assetTag, " | ", a.name, " | ", a.institution, " | ", a.site, " | ", a.status);
 }
 
-function globalView() returns error? {
-    Asset[] assets = check assetClient->get("/");
+function globalView() {
+    Asset[]|error result = assetClient->get("/");
+    if result is error {
+        io:println("Could not reach the service.");
+        return;
+    }
     io:println("\n-- All Assets --");
-    if assets.length() == 0 {
+    if result.length() == 0 {
         io:println("No assets found.");
     }
-    foreach Asset a in assets {
+    foreach Asset a in result {
         printAsset(a);
     }
 }
 
-function campusView() returns error? {
+function campusView() {
     io:print("Filter by (1) institution or (2) site? ");
     string mode = io:readln();
     io:print("Enter value: ");
     string value = io:readln();
 
-    Asset[] assets;
+    Asset[]|error result;
     if mode == "1" {
-        assets = check assetClient->get("/institution/" + value);
+        result = assetClient->get("/institution/" + value);
     } else {
-        assets = check assetClient->get("/site/" + value);
+        result = assetClient->get("/site/" + value);
+    }
+
+    if result is error {
+        io:println("Could not reach the service.");
+        return;
     }
 
     io:println("\n-- Filtered Assets --");
-    if assets.length() == 0 {
+    if result.length() == 0 {
         io:println("No matching assets found.");
     }
-    foreach Asset a in assets {
+    foreach Asset a in result {
         printAsset(a);
     }
 }
 
-function overdueDashboard() returns error? {
-    Asset[] assets = check assetClient->get("/overdue");
+function overdueDashboard() {
+    Asset[]|error result = assetClient->get("/overdue");
+    if result is error {
+        io:println("Could not reach the service.");
+        return;
+    }
     io:println("\n-- Overdue Assets --");
-    if assets.length() == 0 {
+    if result.length() == 0 {
         io:println("Nothing overdue.");
     }
-    foreach Asset a in assets {
+    foreach Asset a in result {
         printAsset(a);
         foreach Schedule s in a.schedules {
             io:println("   - Schedule ", s.scheduleId, " due ", s.dueDate, ": ", s.description);
@@ -86,11 +99,16 @@ function overdueDashboard() returns error? {
     }
 }
 
-function loanAsset() returns error? {
+function loanAsset() {
     io:print("Enter assetTag to loan/book: ");
     string tag = io:readln();
 
-    Asset asset = check assetClient->get("/" + tag);
+    Asset|error result = assetClient->get("/" + tag);
+    if result is error {
+        io:println("Asset not found. Please check the assetTag and try again.");
+        return;
+    }
+    Asset asset = result;
 
     io:println("Current status: ", asset.status);
     io:print("New status (LOANED_OUT / AVAILABLE / UNDER_MAINTENANCE / DISPOSED): ");
@@ -102,11 +120,15 @@ function loanAsset() returns error? {
     }
 
     asset.status = <AssetStatus>newStatus;
-    Asset updated = check assetClient->put("/" + tag, asset);
+    Asset|error updated = assetClient->put("/" + tag, asset);
+    if updated is error {
+        io:println("Failed to update asset.");
+        return;
+    }
     io:println("Updated: ", updated.assetTag, " is now ", updated.status);
 }
 
-function scheduleManager() returns error? {
+function scheduleManager() {
     io:println("1. Add schedule  2. Remove schedule");
     io:print("Choose: ");
     string action = io:readln();
@@ -131,12 +153,20 @@ function scheduleManager() returns error? {
             description: description
         };
 
-        Asset updated = check assetClient->post("/" + tag + "/schedules", newSchedule);
+        Asset|error updated = assetClient->post("/" + tag + "/schedules", newSchedule);
+        if updated is error {
+            io:println("Failed to add schedule. Check the assetTag and try again.");
+            return;
+        }
         io:println("Schedule added. ", updated.assetTag, " now has ", updated.schedules.length(), " schedule(s).");
     } else if action == "2" {
         io:print("Schedule ID to remove: ");
         string scheduleId = io:readln();
-        Asset updated = check assetClient->delete("/" + tag + "/schedules/" + scheduleId);
+        Asset|error updated = assetClient->delete("/" + tag + "/schedules/" + scheduleId);
+        if updated is error {
+            io:println("Failed to remove schedule. Check the assetTag and try again.");
+            return;
+        }
         io:println("Schedule removed. ", updated.assetTag, " now has ", updated.schedules.length(), " schedule(s).");
     } else {
         io:println("Invalid choice.");
