@@ -97,4 +97,71 @@ service /assets on new http:Listener(8080) {
     resource function get institutions() returns Institution[] {
         return institutionStore.toArray();
     }
+        resource function post [string assetTag]/components(@http:Payload Component newComponent) returns Asset|http:NotFound {
+        Asset? found = assetStore[assetTag];
+        if found is () {
+            return http:NOT_FOUND;
+        }
+        found.components.push(newComponent);
+        assetStore[assetTag] = found;
+        return found;
+    }
+
+    resource function delete [string assetTag]/components/[string compId]() returns Asset|http:NotFound {
+        Asset? found = assetStore[assetTag];
+        if found is () {
+            return http:NOT_FOUND;
+        }
+        found.components = found.components.filter(c => c.compId != compId);
+        assetStore[assetTag] = found;
+        return found;
+    }
+
+        resource function post [string assetTag]/workorders(@http:Payload WorkOrder newOrder) returns Asset|http:NotFound {
+        Asset? found = assetStore[assetTag];
+        if found is () {
+            return http:NOT_FOUND;
+        }
+        found.workOrders.push(newOrder);
+        assetStore[assetTag] = found;
+        return found;
+    }
+
+    resource function put [string assetTag]/workorders/[string orderId](@http:Payload WorkOrder updatedOrder) returns Asset|http:NotFound {
+        Asset? found = assetStore[assetTag];
+        if found is () {
+            return http:NOT_FOUND;
+        }
+        found.workOrders = found.workOrders.map(wo => wo.orderId == orderId ? updatedOrder : wo);
+        assetStore[assetTag] = found;
+        return found;
+    }
+
+    resource function delete [string assetTag]/workorders/[string orderId]() returns Asset|http:NotFound {
+        Asset? found = assetStore[assetTag];
+        if found is () {
+            return http:NOT_FOUND;
+        }
+        found.workOrders = found.workOrders.filter(wo => wo.orderId != orderId);
+        assetStore[assetTag] = found;
+        return found;
+    }
+
+    resource function post [string assetTag]/workorders/[string orderId]/tasks(@http:Payload Task newTask) returns Asset|http:NotFound {
+        Asset? found = assetStore[assetTag];
+        if found is () {
+            return http:NOT_FOUND;
+        }
+        WorkOrder[] updatedOrders = [];
+        foreach WorkOrder wo in found.workOrders {
+            if wo.orderId == orderId {
+                wo.tasks.push(newTask);
+            }
+            updatedOrders.push(wo);
+        }
+        found.workOrders = updatedOrders;
+        assetStore[assetTag] = found;
+        return found;
+    }
+    
 }
